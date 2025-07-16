@@ -23,6 +23,7 @@ import java.util.logging.Logger;
 @Component
 @Profile("!test")
 public class DataLoader {
+
     private final Logger log = Logger.getLogger(this.getClass().getName());
     private final BrokerRepository brokerRepository;
     private final ShareholderRepository shareholderRepository;
@@ -65,7 +66,7 @@ public class DataLoader {
 
     private void loadBrokers() throws Exception {
         brokerRepository.clear();
-      try (Reader reader = new FileReader(brokerCsvResource.getFile())) {
+        try (Reader reader = new FileReader(brokerCsvResource.getFile())) {
             try (CSVReader csvReader = new CSVReaderBuilder(reader).withSkipLines(1).build()) {
                 String[] line;
                 while ((line = csvReader.readNext()) != null) {
@@ -225,10 +226,12 @@ public class DataLoader {
                             .add(String.valueOf(security.getTickSize()))
                             .add(String.valueOf(security.getLotSize()));
                     securityWriter.println(joiner);
-                    for (Order order : security.getOrderBook().getBuyQueue())
+                    for (Order order : security.getOrderBook().getBuyQueue()) {
                         orderBookWriter.println(getCSVString(order));
-                    for (Order order : security.getOrderBook().getSellQueue())
+                    }
+                    for (Order order : security.getOrderBook().getSellQueue()) {
                         orderBookWriter.println(getCSVString(order));
+                    }
                 }
             }
         }

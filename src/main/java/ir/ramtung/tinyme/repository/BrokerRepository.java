@@ -16,9 +16,10 @@ public class BrokerRepository {
     }
 
     public void clear() {
+        System.out.println("BrokerRepository.clear()");
         brokerById.clear();
     }
-    Iterable<? extends Broker> allBrokers() {
+    public Iterable<? extends Broker> allBrokers() {
         return brokerById.values();
     }
 }

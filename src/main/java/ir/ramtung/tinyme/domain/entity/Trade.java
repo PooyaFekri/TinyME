@@ -10,6 +10,7 @@ import lombok.ToString;
 @EqualsAndHashCode
 @ToString
 public class Trade {
+
     Security security;
     private int price;
     private int quantity;

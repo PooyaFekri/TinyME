@@ -41,10 +41,10 @@ public class OrderHandler {
             Security security = securityRepository.findSecurityByIsin(enterOrderRq.getSecurityIsin());
             Broker broker = brokerRepository.findBrokerById(enterOrderRq.getBrokerId());
             Shareholder shareholder = shareholderRepository.findShareholderById(enterOrderRq.getShareholderId());
-
             MatchResult matchResult;
-            if (enterOrderRq.getRequestType() == OrderEntryType.NEW_ORDER)
+            if (enterOrderRq.getRequestType() == OrderEntryType.NEW_ORDER){
                 matchResult = security.newOrder(enterOrderRq, broker, shareholder, matcher);
+            }
             else
                 matchResult = security.updateOrder(enterOrderRq, matcher);
 

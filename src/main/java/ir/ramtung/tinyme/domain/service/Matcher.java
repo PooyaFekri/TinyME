@@ -8,20 +8,21 @@ import java.util.ListIterator;
 
 @Service
 public class Matcher {
+
     public MatchResult match(Order newOrder) {
         OrderBook orderBook = newOrder.getSecurity().getOrderBook();
         LinkedList<Trade> trades = new LinkedList<>();
-
         while (orderBook.hasOrderOfType(newOrder.getSide().opposite()) && newOrder.getQuantity() > 0) {
             Order matchingOrder = orderBook.matchWithFirst(newOrder);
-            if (matchingOrder == null)
+            if (matchingOrder == null) {
                 break;
+            }
 
             Trade trade = new Trade(newOrder.getSecurity(), matchingOrder.getPrice(), Math.min(newOrder.getQuantity(), matchingOrder.getQuantity()), newOrder, matchingOrder);
             if (newOrder.getSide() == Side.BUY) {
-                if (trade.buyerHasEnoughCredit())
-                    trade.decreaseBuyersCredit();
-                else {
+                if (trade.buyerHasEnoughCredit()) {
+                    trade.decreaseBuyersCredit(); 
+                }else {
                     rollbackTrades(newOrder, trades);
                     return MatchResult.notEnoughCredit();
                 }
@@ -35,8 +36,9 @@ public class Matcher {
                 if (matchingOrder instanceof IcebergOrder icebergOrder) {
                     icebergOrder.decreaseQuantity(matchingOrder.getQuantity());
                     icebergOrder.replenish();
-                    if (icebergOrder.getQuantity() > 0)
+                    if (icebergOrder.getQuantity() > 0) {
                         orderBook.enqueue(icebergOrder);
+                    }
                 }
             } else {
                 matchingOrder.decreaseQuantity(newOrder.getQuantity());
@@ -59,8 +61,9 @@ public class Matcher {
 
     public MatchResult execute(Order order) {
         MatchResult result = match(order);
-        if (result.outcome() == MatchingOutcome.NOT_ENOUGH_CREDIT)
+        if (result.outcome() == MatchingOutcome.NOT_ENOUGH_CREDIT) {
             return result;
+        }
 
         if (result.remainder().getQuantity() > 0) {
             if (order.getSide() == Side.BUY) {
