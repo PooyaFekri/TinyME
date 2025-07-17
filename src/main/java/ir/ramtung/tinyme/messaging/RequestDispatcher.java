@@ -1,6 +1,5 @@
 package ir.ramtung.tinyme.messaging;
 
-import java.util.logging.Logger;
 
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
@@ -11,7 +10,6 @@ import ir.ramtung.tinyme.messaging.request.EnterOrderRq;
 
 @Component
 public class RequestDispatcher {
-    private final Logger log = Logger.getLogger(this.getClass().getName());
     private final OrderHandler orderHandler;
 
     public RequestDispatcher(OrderHandler orderHandler) {

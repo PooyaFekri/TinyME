@@ -80,6 +80,8 @@
                         <param>ir.ramtung.tinyme.messaging.*</param>
                         <param>ir.ramtung.tinyme.repository.*</param>
                         <param>ir.ramtung.tinyme.repository.*</param>
+                        <param>ir.ramtung.tinyme.domain.entity.IcebergOrder</param>
+                        <param>ir.ramtung.tinyme.domain.service.OrderHandler</param>
                     </excludedClasses>
                 </configuration>
             </plugin>

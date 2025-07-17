@@ -3,7 +3,6 @@ package ir.ramtung.tinyme.messaging;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Logger;
 
 import org.springframework.stereotype.Component;
 
@@ -12,7 +11,6 @@ import ir.ramtung.tinyme.messaging.event.Event;
 @Component
 public class EventPublisher {
 
-    private final Logger log = Logger.getLogger(this.getClass().getName());
     private final Queue<Event> eventQueue = new ConcurrentLinkedQueue<>();
 
     public void publish(Event event) {
