@@ -2,6 +2,7 @@ package ir.ramtung.tinyme.domain;
 
 import java.util.List;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 
 import ir.ramtung.tinyme.messaging.request.*;
 import ir.ramtung.tinyme.messaging.event.*;
@@ -19,9 +20,12 @@ public class BaseProviders {
 
     public static class TestSetup {
 
-        static final long brokerId = 1L;
+        static final long buyBrokerId = 1L;
+        static final long sellBrokerId = 2L;
         static final long shareholderId = 1;
+        static final long BiggestOrderId = 6;
         static final String isin = "US1234567890";
+        static HashSet<Long> ids = new HashSet<Long>();
 
         static final BrokerRepository brokerRepo = new BrokerRepository();
         static final SecurityRepository securityRepo = new SecurityRepository();
@@ -34,7 +38,7 @@ public class BaseProviders {
     }
 
     long getBrokerCredit(long brokerId) {
-        Broker broker = TestSetup.brokerRepo.findBrokerById(TestSetup.brokerId);
+        Broker broker = TestSetup.brokerRepo.findBrokerById(brokerId);
         return broker.getCredit();
     }
 
@@ -43,9 +47,17 @@ public class BaseProviders {
     }
 
     @Provide
-    Arbitrary<Broker> brokerProvider() {
-        Arbitrary<Integer> credit = Arbitraries.integers().between(0, 100);
-        Arbitrary<Long> brokerId = Arbitraries.longs().between(TestSetup.brokerId, TestSetup.brokerId);
+    Arbitrary<Broker> buyBrokerProvider() {
+        Arbitrary<Integer> credit = Arbitraries.integers().between(0, 50);
+        Arbitrary<Long> brokerId = Arbitraries.longs().between(TestSetup.buyBrokerId, TestSetup.buyBrokerId);
+        return Combinators.combine(credit, brokerId)
+                .as((cre, bid) -> Broker.builder().brokerId(bid).credit(cre).build());
+    }
+
+    @Provide
+    Arbitrary<Broker> sellBrokerProvider() {
+        Arbitrary<Integer> credit = Arbitraries.integers().between(0, 50);
+        Arbitrary<Long> brokerId = Arbitraries.longs().between(TestSetup.sellBrokerId, TestSetup.sellBrokerId);
         return Combinators.combine(credit, brokerId)
                 .as((cre, bid) -> Broker.builder().brokerId(bid).credit(cre).build());
     }
@@ -55,12 +67,13 @@ public class BaseProviders {
         // Arbitrary instances for random values
         Arbitrary<Long> requestId = Arbitraries.longs().between(1, Long.MAX_VALUE);
         Arbitrary<String> securityIsin = Arbitraries.of(TestSetup.isin); // Wrap in Arbitrary
-        Arbitrary<Long> orderId = Arbitraries.longs().between(1, Long.MAX_VALUE);
+        Arbitrary<Long> orderId = Arbitraries.longs().between(1, TestSetup.BiggestOrderId)
+                .filter(id -> !TestSetup.ids.contains(id));
         Arbitrary<LocalDateTime> entryTime = Arbitraries.defaultFor(LocalDateTime.class);
         Arbitrary<Side> side = Arbitraries.of(Side.BUY); // Wrap in Arbitrary
         Arbitrary<Integer> quantity = Arbitraries.integers().between(1, 3);
         Arbitrary<Integer> price = Arbitraries.integers().between(1, 3);
-        Arbitrary<Long> brokerId = Arbitraries.of(TestSetup.brokerId); // Wrap in Arbitrary
+        Arbitrary<Long> brokerId = Arbitraries.of(TestSetup.buyBrokerId); // Wrap in Arbitrary
         Arbitrary<Long> shareholderId = Arbitraries.of(TestSetup.shareholderId); // Wrap in Arbitrary
         Arbitrary<Integer> peakSize = Arbitraries.integers().between(0, 0);
         // Combine first set of Arbitrary instances
@@ -91,7 +104,7 @@ public class BaseProviders {
         Arbitrary<Side> side = Arbitraries.of(Side.SELL); // Wrap in Arbitrary
         Arbitrary<Integer> quantity = Arbitraries.integers().between(1, 3);
         Arbitrary<Integer> price = Arbitraries.integers().between(1, 3);
-        Arbitrary<Long> brokerId = Arbitraries.of(TestSetup.brokerId); // Wrap in Arbitrary
+        Arbitrary<Long> brokerId = Arbitraries.of(TestSetup.sellBrokerId); // Wrap in Arbitrary
         Arbitrary<Long> shareholderId = Arbitraries.of(TestSetup.shareholderId); // Wrap in Arbitrary
         Arbitrary<Integer> peakSize = Arbitraries.integers().between(0, 0);
 
@@ -114,23 +127,62 @@ public class BaseProviders {
     }
 
     @Provide
-    Arbitrary<OrderHandler> orderHandler() {
-        Matcher matcher = new Matcher();
+    Arbitrary<OrderHandler> orderHandlerProvider() {
+        Arbitrary<Broker> buyBrokerArb = buyBrokerProvider();
+        Arbitrary<Broker> sellBrokerArb = sellBrokerProvider();
+        Arbitrary<List<EnterOrderRq>> sellOrdersArb = enterSellOrderList();
+        Arbitrary<List<EnterOrderRq>> buyOrdersArb = enterBuyOrderList();
 
-        OrderHandler orderHandler = new OrderHandler(TestSetup.securityRepo, TestSetup.brokerRepo,
-                TestSetup.shareholderRepo, TestSetup.eventPublisher, matcher);
+        return Combinators.combine(buyBrokerArb, sellBrokerArb, sellOrdersArb, buyOrdersArb)
+                .as((buyBroker, sellBroker, sellOrders, buyOrders) -> {
 
-        for (int i = 0; i < Arbitraries.integers().between(1, 10).sample(); i++) {
-            EnterOrderRq randomSellOrder = enterSellOrderRqProvider().sample();
-            orderHandler.handleEnterOrder(randomSellOrder);
-        }
+                    // Setup fresh matcher and handler
+                    Matcher matcher = new Matcher();
+                    OrderHandler orderHandler = new OrderHandler(
+                            TestSetup.securityRepo,
+                            TestSetup.brokerRepo,
+                            TestSetup.shareholderRepo,
+                            TestSetup.eventPublisher,
+                            matcher);
 
-        for (int i = 0; i < Arbitraries.integers().between(1, 10).sample(); i++) {
-            EnterOrderRq randomBuyOrder = enterBuyOrderRqProvider().sample();
-            orderHandler.handleEnterOrder(randomBuyOrder);
+                    // Assign for other use
+                    this.orderHandler = orderHandler;
+                    TestSetup.ids.clear();
 
-        }
-        return Arbitraries.of(orderHandler);
+                    // Setup security and shareholder
+                    Security security = Security.builder().isin(TestSetup.isin).build();
+                    Shareholder shareholder = Shareholder.builder().shareholderId(TestSetup.shareholderId).build();
+                    shareholder.incPosition(security, 100_000_000);
+                    TestSetup.securityRepo.addSecurity(security);
+                    TestSetup.shareholderRepo.addShareholder(shareholder);
+
+                    // Add brokers
+                    TestSetup.brokerRepo.addBroker(sellBroker);
+                    TestSetup.brokerRepo.addBroker(buyBroker);
+
+                    // Handle sell orders
+                    for (EnterOrderRq enterOrderRq : sellOrders) {
+                        orderHandler.handleEnterOrder(enterOrderRq);
+                    }
+
+                    // Handle buy orders
+                    for (EnterOrderRq enterOrderRq : buyOrders) {
+                        orderHandler.handleEnterOrder(enterOrderRq);
+                        TestSetup.ids.add(enterOrderRq.getOrderId());
+                    }
+
+                    return orderHandler;
+                });
+    }
+
+    @Provide
+    Arbitrary<List<EnterOrderRq>> enterBuyOrderList() {
+        return enterBuyOrderRqProvider().list().ofMinSize(0).ofMaxSize(5).uniqueElements(order -> order.getOrderId());
+    }
+
+    @Provide
+    Arbitrary<List<EnterOrderRq>> enterSellOrderList() {
+        return enterSellOrderRqProvider().list().ofMinSize(0).ofMaxSize(5).uniqueElements(order -> order.getOrderId());
     }
 
     @Provide
@@ -138,12 +190,12 @@ public class BaseProviders {
         // Arbitrary instances for random values
         Arbitrary<Long> requestId = Arbitraries.longs().between(1, Long.MAX_VALUE);
         Arbitrary<String> securityIsin = Arbitraries.of(TestSetup.isin); // Wrap in Arbitrary
-        Arbitrary<Long> orderId = Arbitraries.longs().between(1, Long.MAX_VALUE);
+        Arbitrary<Long> orderId = Arbitraries.longs().between(1, TestSetup.BiggestOrderId);
         Arbitrary<LocalDateTime> entryTime = Arbitraries.defaultFor(LocalDateTime.class);
         Arbitrary<Side> side = Arbitraries.of(Side.BUY); // Wrap in Arbitrary
         Arbitrary<Integer> quantity = Arbitraries.integers().between(1, 3);
         Arbitrary<Integer> price = Arbitraries.integers().between(1, 3);
-        Arbitrary<Long> brokerId = Arbitraries.of(TestSetup.brokerId); // Wrap in Arbitrary
+        Arbitrary<Long> brokerId = Arbitraries.of(TestSetup.buyBrokerId); // Wrap in Arbitrary
         Arbitrary<Long> shareholderId = Arbitraries.of(TestSetup.shareholderId); // Wrap in Arbitrary
         Arbitrary<Integer> peakSize = Arbitraries.integers().between(0, 0);
         // Combine first set of Arbitrary instances
@@ -169,18 +221,18 @@ public class BaseProviders {
         // Arbitrary instances for random values
         Arbitrary<Long> requestId = Arbitraries.longs().between(1, Long.MAX_VALUE);
         Arbitrary<String> securityIsin = Arbitraries.of(TestSetup.isin);
-        Arbitrary<Long> orderId = Arbitraries.longs().between(1, Long.MAX_VALUE);
+        Arbitrary<Long> orderId = Arbitraries.longs().between(1, TestSetup.BiggestOrderId);
         Arbitrary<Side> side = Arbitraries.of(Side.BUY);
         // Combine the results from both combinations
         return Combinators.combine(requestId, securityIsin, side, orderId)
                 .as((reqId, secIsin, s, ordId) -> new DeleteOrderRq(reqId, secIsin, s, ordId));
     }
 
-    void revertMatchEngine(EnterOrderRq order, OrderExecutedEvent event, long broker_credit) {
+    void revertMatchEngine(EnterOrderRq order, OrderExecutedEvent event) {
         // For each trade in the event, create and process the appropriate orders
         boolean needBuySide = (order.getSide() == Side.SELL);
         boolean needSellSide = (order.getSide() == Side.BUY);
-        TestSetup.brokerRepo.addBroker(Broker.builder().brokerId(TestSetup.brokerId).credit(1000_000).build());
+        TestSetup.brokerRepo.addBroker(Broker.builder().brokerId(TestSetup.buyBrokerId).credit(1000_000).build());
         Event result_event = null;
         for (TradeDTO trade : event.getTrades()) {
             if (needBuySide) {
@@ -193,7 +245,7 @@ public class BaseProviders {
                             Side.BUY,
                             trade.quantity(),
                             trade.price(),
-                            TestSetup.brokerId,
+                            TestSetup.buyBrokerId,
                             TestSetup.shareholderId,
                             0 // No peak size
                     );
@@ -210,7 +262,7 @@ public class BaseProviders {
                             Side.SELL,
                             trade.quantity(),
                             trade.price(),
-                            TestSetup.brokerId,
+                            TestSetup.sellBrokerId,
                             TestSetup.shareholderId,
                             0 // No peak size
                     );
@@ -219,20 +271,12 @@ public class BaseProviders {
                 } while (!(result_event instanceof OrderAcceptedEvent));
             }
         }
-        TestSetup.brokerRepo.addBroker(Broker.builder().brokerId(TestSetup.brokerId).credit(broker_credit).build());
     }
 
     // Wrapper method to be used in the test
     @BeforeTry
     private void testSetup() {
-        Security security = Security.builder().isin(TestSetup.isin).build();
-        Shareholder shareholder = Shareholder.builder().shareholderId(TestSetup.shareholderId).build();
-        shareholder.incPosition(security, 100_000_000);
-        TestSetup.securityRepo.addSecurity(security);
-        TestSetup.shareholderRepo.addShareholder(shareholder);
-        Broker broker = brokerProvider().sample();
-        TestSetup.brokerRepo.addBroker(broker);
-        this.orderHandler = orderHandler().sample();
+
     }
 
     public Order findOrderById(Side side, long orderId) {

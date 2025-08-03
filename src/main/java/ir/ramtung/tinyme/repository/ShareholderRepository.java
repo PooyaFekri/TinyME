@@ -1,16 +1,21 @@
 package ir.ramtung.tinyme.repository;
 
 import ir.ramtung.tinyme.domain.entity.Shareholder;
+import lombok.ToString;
+
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 
 @Component
+@ToString
 public class ShareholderRepository {
     private final HashMap<Long, Shareholder> shareholderById = new HashMap<>();
+
     public Shareholder findShareholderById(long shareholderId) {
         return shareholderById.get(shareholderId);
     }
+
     public void addShareholder(Shareholder shareholder) {
         shareholderById.put(shareholder.getShareholderId(), shareholder);
     }

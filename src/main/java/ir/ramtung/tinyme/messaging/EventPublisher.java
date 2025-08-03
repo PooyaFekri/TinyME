@@ -23,7 +23,8 @@ public class EventPublisher {
     }
 
     public Optional<Event> getLastEvent() {
-        return eventQueue.isEmpty() ? Optional.empty() : Optional.ofNullable(eventQueue.stream().reduce((first, second) -> second).orElse(null));
+        return eventQueue.isEmpty() ? Optional.empty()
+                : Optional.ofNullable(eventQueue.stream().reduce((first, second) -> second).orElse(null));
     }
 
     public int size() {

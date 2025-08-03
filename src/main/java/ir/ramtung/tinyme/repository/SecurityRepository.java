@@ -2,14 +2,17 @@ package ir.ramtung.tinyme.repository;
 
 import ir.ramtung.tinyme.domain.entity.Security;
 import lombok.Getter;
+import lombok.ToString;
 
 import org.springframework.stereotype.Component;
 import java.util.HashMap;
 
 @Getter
 @Component
+@ToString
 public class SecurityRepository {
     private final HashMap<String, Security> securityByIsin = new HashMap<>();
+
     public Security findSecurityByIsin(String isin) {
         return securityByIsin.get(isin);
     }

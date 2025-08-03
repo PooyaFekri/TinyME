@@ -1,12 +1,14 @@
 package ir.ramtung.tinyme.domain.entity;
 
 import lombok.Getter;
+import lombok.ToString;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
 @Getter
+@ToString
 public class OrderBook {
     private final LinkedList<Order> buyQueue;
     private final LinkedList<Order> sellQueue;

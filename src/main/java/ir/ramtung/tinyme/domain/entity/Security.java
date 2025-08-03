@@ -7,11 +7,13 @@ import ir.ramtung.tinyme.domain.service.Matcher;
 import ir.ramtung.tinyme.messaging.Message;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
 
 import java.util.List;
 
 @Getter
 @Builder
+@ToString
 public class Security {
 
     private String isin;
@@ -33,9 +35,10 @@ public class Security {
         order = new Order(enterOrderRq.getOrderId(), this, enterOrderRq.getSide(),
                 enterOrderRq.getQuantity(), enterOrderRq.getPrice(), broker, shareholder, enterOrderRq.getEntryTime());
         // else
-        //     order = new IcebergOrder(enterOrderRq.getOrderId(), this, enterOrderRq.getSide(),
-        //             enterOrderRq.getQuantity(), enterOrderRq.getPrice(), broker, shareholder,
-        //             enterOrderRq.getEntryTime(), enterOrderRq.getPeakSize());
+        // order = new IcebergOrder(enterOrderRq.getOrderId(), this,
+        // enterOrderRq.getSide(),
+        // enterOrderRq.getQuantity(), enterOrderRq.getPrice(), broker, shareholder,
+        // enterOrderRq.getEntryTime(), enterOrderRq.getPeakSize());
 
         return matcher.execute(order);
     }
@@ -57,19 +60,22 @@ public class Security {
             throw new InvalidRequestException(Message.ORDER_ID_NOT_FOUND);
         }
         // if ((order instanceof IcebergOrder) && updateOrderRq.getPeakSize() == 0)
-        //     throw new InvalidRequestException(Message.INVALID_PEAK_SIZE);
+        // throw new InvalidRequestException(Message.INVALID_PEAK_SIZE);
         // if (!(order instanceof IcebergOrder) && updateOrderRq.getPeakSize() != 0)
-        //     throw new InvalidRequestException(Message.CANNOT_SPECIFY_PEAK_SIZE_FOR_A_NON_ICEBERG_ORDER);
+        // throw new
+        // InvalidRequestException(Message.CANNOT_SPECIFY_PEAK_SIZE_FOR_A_NON_ICEBERG_ORDER);
 
         if (updateOrderRq.getSide() == Side.SELL
                 && !order.getShareholder().hasEnoughPositionsOn(this,
-                        orderBook.totalSellQuantityByShareholder(order.getShareholder()) - order.getQuantity() + updateOrderRq.getQuantity())) {
+                        orderBook.totalSellQuantityByShareholder(order.getShareholder()) - order.getQuantity()
+                                + updateOrderRq.getQuantity())) {
             return MatchResult.notEnoughPositions();
         }
 
         boolean losesPriority = order.isQuantityIncreased(updateOrderRq.getQuantity())
                 || updateOrderRq.getPrice() != order.getPrice();
-        //|| ((order instanceof IcebergOrder icebergOrder) && (icebergOrder.getPeakSize() < updateOrderRq.getPeakSize()));
+        // || ((order instanceof IcebergOrder icebergOrder) &&
+        // (icebergOrder.getPeakSize() < updateOrderRq.getPeakSize()));
 
         if (updateOrderRq.getSide() == Side.BUY) {
             order.getBroker().increaseCreditBy(order.getValue());

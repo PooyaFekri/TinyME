@@ -1,12 +1,15 @@
 package ir.ramtung.tinyme.domain.service;
 
 import ir.ramtung.tinyme.domain.entity.*;
+import lombok.ToString;
+
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedList;
 import java.util.ListIterator;
 
 @Service
+@ToString
 public class Matcher {
 
     public MatchResult match(Order newOrder) {
@@ -18,11 +21,12 @@ public class Matcher {
                 break;
             }
 
-            Trade trade = new Trade(newOrder.getSecurity(), matchingOrder.getPrice(), Math.min(newOrder.getQuantity(), matchingOrder.getQuantity()), newOrder, matchingOrder);
+            Trade trade = new Trade(newOrder.getSecurity(), matchingOrder.getPrice(),
+                    Math.min(newOrder.getQuantity(), matchingOrder.getQuantity()), newOrder, matchingOrder);
             if (newOrder.getSide() == Side.BUY) {
                 if (trade.buyerHasEnoughCredit()) {
-                    trade.decreaseBuyersCredit(); 
-                }else {
+                    trade.decreaseBuyersCredit();
+                } else {
                     rollbackTrades(newOrder, trades);
                     return MatchResult.notEnoughCredit();
                 }
@@ -33,13 +37,13 @@ public class Matcher {
             if (newOrder.getQuantity() >= matchingOrder.getQuantity()) {
                 newOrder.decreaseQuantity(matchingOrder.getQuantity());
                 orderBook.removeFirst(matchingOrder.getSide());
-                if (matchingOrder instanceof IcebergOrder icebergOrder) {
-                    icebergOrder.decreaseQuantity(matchingOrder.getQuantity());
-                    icebergOrder.replenish();
-                    if (icebergOrder.getQuantity() > 0) {
-                        orderBook.enqueue(icebergOrder);
-                    }
-                }
+                // if (matchingOrder instanceof IcebergOrder icebergOrder) {
+                // icebergOrder.decreaseQuantity(matchingOrder.getQuantity());
+                // icebergOrder.replenish();
+                // if (icebergOrder.getQuantity() > 0) {
+                // orderBook.enqueue(icebergOrder);
+                // }
+                // }
             } else {
                 matchingOrder.decreaseQuantity(newOrder.getQuantity());
                 newOrder.makeQuantityZero();
