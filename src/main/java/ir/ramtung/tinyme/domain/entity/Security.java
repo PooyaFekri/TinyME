@@ -59,12 +59,6 @@ public class Security {
         if (order == null) {
             throw new InvalidRequestException(Message.ORDER_ID_NOT_FOUND);
         }
-        // if ((order instanceof IcebergOrder) && updateOrderRq.getPeakSize() == 0)
-        // throw new InvalidRequestException(Message.INVALID_PEAK_SIZE);
-        // if (!(order instanceof IcebergOrder) && updateOrderRq.getPeakSize() != 0)
-        // throw new
-        // InvalidRequestException(Message.CANNOT_SPECIFY_PEAK_SIZE_FOR_A_NON_ICEBERG_ORDER);
-
         if (updateOrderRq.getSide() == Side.SELL
                 && !order.getShareholder().hasEnoughPositionsOn(this,
                         orderBook.totalSellQuantityByShareholder(order.getShareholder()) - order.getQuantity()
@@ -74,8 +68,6 @@ public class Security {
 
         boolean losesPriority = order.isQuantityIncreased(updateOrderRq.getQuantity())
                 || updateOrderRq.getPrice() != order.getPrice();
-        // || ((order instanceof IcebergOrder icebergOrder) &&
-        // (icebergOrder.getPeakSize() < updateOrderRq.getPeakSize()));
 
         if (updateOrderRq.getSide() == Side.BUY) {
             order.getBroker().increaseCreditBy(order.getValue());

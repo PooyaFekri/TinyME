@@ -37,13 +37,6 @@ public class Matcher {
             if (newOrder.getQuantity() >= matchingOrder.getQuantity()) {
                 newOrder.decreaseQuantity(matchingOrder.getQuantity());
                 orderBook.removeFirst(matchingOrder.getSide());
-                // if (matchingOrder instanceof IcebergOrder icebergOrder) {
-                // icebergOrder.decreaseQuantity(matchingOrder.getQuantity());
-                // icebergOrder.replenish();
-                // if (icebergOrder.getQuantity() > 0) {
-                // orderBook.enqueue(icebergOrder);
-                // }
-                // }
             } else {
                 matchingOrder.decreaseQuantity(newOrder.getQuantity());
                 newOrder.makeQuantityZero();

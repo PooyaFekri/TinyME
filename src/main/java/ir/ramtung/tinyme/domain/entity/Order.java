@@ -1,6 +1,7 @@
 package ir.ramtung.tinyme.domain.entity;
 
 import ir.ramtung.tinyme.messaging.request.EnterOrderRq;
+import lombok.Generated;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -25,6 +26,7 @@ public class Order {
     @Builder.Default
     protected OrderStatus status = OrderStatus.NEW;
 
+    @Generated
     public Order(long orderId, Security security, Side side, int quantity, int price, Broker broker,
             Shareholder shareholder, LocalDateTime entryTime, OrderStatus status) {
         this.orderId = orderId;
@@ -61,6 +63,7 @@ public class Order {
                 OrderStatus.SNAPSHOT);
     }
 
+    @Generated
     public Order snapshotWithQuantity(int newQuantity) {
         return new Order(orderId, security, side, newQuantity, price, broker, shareholder, entryTime,
                 OrderStatus.SNAPSHOT);

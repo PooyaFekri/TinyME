@@ -1,4 +1,6 @@
 package ir.ramtung.tinyme.domain.entity;
+import lombok.Generated;
+
 
 public enum Side {
     BUY {
@@ -14,6 +16,7 @@ public enum Side {
         }
     };
 
+    @Generated
     public static Side parse(String s) {
         if (s.equals("BUY"))
             return BUY;
